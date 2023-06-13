@@ -135,10 +135,14 @@ for run in range(num_sims):
     cor_var = (cor_size**2)*m.rbf.variance/((M**2)*n)  # variance of correction term (\nu_n^2 in paper)
 
     # Prior covariance matrix with PS correction - make sure min eigenvalue >= jitter for numerical stability
-    PriorCov_BB = k.K(Z_BB,Z_BB) + cor_var*np.matmul(PS_weight,PS_weight.T)
+    PriorCov_BB = k.K(Z_BB,Z_BB) # + cor_var*np.matmul(PS_weight,PS_weight.T)
     PriorCov_eig = min(np.linalg.eigvals(PriorCov_BB))
     if PriorCov_eig < jitter:
         PriorCov_BB = PriorCov_BB +(jitter - PriorCov_eig)*np.eye(2*n)
+    print(PriorCov_eig)
+    print(max(np.linalg.eigvals(PriorCov_BB)))
+    (PriorCov_eigvals,PriorCov_eigvecs) = np.linalg.eigh(PriorCov_BB[data_filter,:][:,data_filter])
+    print(min(PriorCov_eigvals),max(PriorCov_eigvals))
 
     # Cholesky factorization of K(Z,Z)+sig_n^2 I
     PriorCholesky = np.linalg.cholesky(PriorCov_BB[data_filter,:][:,data_filter]+m.Gaussian_noise.variance*np.eye(n))
