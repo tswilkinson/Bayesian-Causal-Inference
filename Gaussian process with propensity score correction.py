@@ -16,17 +16,17 @@ from sklearn import preprocessing
 cor_size = 0.2  # ratio of SD of the prior correction term to the GP kernel size (see Section 4)
 jitter = 1e-9  # min eigenvalue enforced for GP covariance matrix
 PS_bound = 0.1  # propensity score is bounded away from 0,1
-num_sims = 20  # number of simulations
+num_sims = 100  # number of simulations
 num_post = 2000  # number of posterior GP samples
 cred = 0.95 # posterior probability of credible interval
 
 ATE_data = np.zeros((num_sims,4))  # key quantitites about ATE posterior
-ATE_data_noRand = np.zeros((num_sims,4))  # same without randomizing the feature distribution F (plug-in empirical distribution)
+#ATE_data_noRand = np.zeros((num_sims,4))  # same without randomizing the feature distribution F (plug-in empirical distribution)
 
 ##################### Synthetic dataset #######################
 
 # Simulation parameters
-d=100  # number of features
+d=5  # number of features
 n=500  # sample size        
 sig_n = 1.0  # noise SD
 ATE_true = 1.0  #true value of ATE (computed analytically)
@@ -136,13 +136,9 @@ for run in range(num_sims):
 
     # Prior covariance matrix with PS correction - make sure min eigenvalue >= jitter for numerical stability
     PriorCov_BB = k.K(Z_BB,Z_BB) # + cor_var*np.matmul(PS_weight,PS_weight.T)
-    PriorCov_eig = min(np.linalg.eigvals(PriorCov_BB))
+    PriorCov_eig = np.real(min(np.linalg.eigvals(PriorCov_BB)))
     if PriorCov_eig < jitter:
         PriorCov_BB = PriorCov_BB +(jitter - PriorCov_eig)*np.eye(2*n)
-    print(PriorCov_eig)
-    print(max(np.linalg.eigvals(PriorCov_BB)))
-    (PriorCov_eigvals,PriorCov_eigvecs) = np.linalg.eigh(PriorCov_BB[data_filter,:][:,data_filter])
-    print(min(PriorCov_eigvals),max(PriorCov_eigvals))
 
     # Cholesky factorization of K(Z,Z)+sig_n^2 I
     PriorCholesky = np.linalg.cholesky(PriorCov_BB[data_filter,:][:,data_filter]+m.Gaussian_noise.variance*np.eye(n))
@@ -190,14 +186,14 @@ for run in range(num_sims):
         ATE_data[run,3] = 1.0  # if 0 is contained in cred. interval (Type II error)
     
     # Same for method without randomizing F
-    ATE_data_noRand[run,0]=np.mean(meanLm)  # posterior mean
-    low_noRand = np.quantile(ATE_noRand,(1-cred)/2)  #lower point of credible interval
-    up_noRand = np.quantile(ATE_noRand,(1+cred)/2)  #upper point of credible interval
-    ATE_data_noRand[run,1] = up_noRand-low_noRand  # width of credible interval
-    if ATE_true >= low_noRand and ATE_true <= up_noRand:
-        ATE_data_noRand[run,2] = 1.0  # 1 if true ATE falls within credible interval, 0 otherwise
-    if low_noRand <= 0 and up_noRand>=0:
-        ATE_data_noRand[run,3] = 1.0  # if 0 is contained in cred. interval (Type II error)
+#    ATE_data_noRand[run,0]=np.mean(meanLm)  # posterior mean
+#    low_noRand = np.quantile(ATE_noRand,(1-cred)/2)  #lower point of credible interval
+#    up_noRand = np.quantile(ATE_noRand,(1+cred)/2)  #upper point of credible interval
+#    ATE_data_noRand[run,1] = up_noRand-low_noRand  # width of credible interval
+#    if ATE_true >= low_noRand and ATE_true <= up_noRand:
+#        ATE_data_noRand[run,2] = 1.0  # 1 if true ATE falls within credible interval, 0 otherwise
+#    if low_noRand <= 0 and up_noRand>=0:
+#        ATE_data_noRand[run,3] = 1.0  # if 0 is contained in cred. interval (Type II error)
     
     print(run,time.time()-start)
 
@@ -220,11 +216,11 @@ print("Average absolute error of posterior mean: {} plus/minus {}".format(np.mea
 print("Average CI size: {} plus/min {}".format(np.mean(ATE_data[:,1]),np.std(ATE_data[:,1])))
 print("Average coverage: {} Average Type II error: {}".format(np.mean(ATE_data[:,2]),np.mean(ATE_data[:,3])))
 
-print("\n")
-print("Without randomization of F")
-print("Average absolute error of posterior mean: {} plus/minus {}".format(np.mean(abs(ATE_data_noRand[:,0]-ATE_true)),np.std(abs(ATE_data_noRand[:,0]-ATE_true))))
-print("Average CI size: {} plus/min {}".format(np.mean(ATE_data_noRand[:,1]),np.std(ATE_data_noRand[:,1])))
-print("Average coverage: {} Average Type II error: {}".format(np.mean(ATE_data_noRand[:,2]),np.mean(ATE_data_noRand[:,3])))
+#print("\n")
+#print("Without randomization of F")
+#print("Average absolute error of posterior mean: {} plus/minus {}".format(np.mean(abs(ATE_data_noRand[:,0]-ATE_true)),np.std(abs(ATE_data_noRand[:,0]-ATE_true))))
+#print("Average CI size: {} plus/min {}".format(np.mean(ATE_data_noRand[:,1]),np.std(ATE_data_noRand[:,1])))
+#print("Average coverage: {} Average Type II error: {}".format(np.mean(ATE_data_noRand[:,2]),np.mean(ATE_data_noRand[:,3])))
 
 ## Save full information to CSV files
 #np.savetxt("GP with PS n={}.csv".format(n), ATE_data, delimiter=",")
